@@ -6,261 +6,269 @@
 
 #include "komponenta.h"
 
-// Globalni pokazivač
 Komponenta* komponente = NULL;
-
-// Broj komponenti
 int brojKomponenti = 0;
 
-// Čišćenje buffera
 static void clearBuffer()
 {
-	while (getchar() != '\n');
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
 }
 
-// Funkcija za spremanje komponenti
+static int postojiKomponenta(const char* id)
+{
+    for (int i = 0; i < brojKomponenti; i++)
+    {
+        if (strcmp(komponente[i].id, id) == 0)
+            return i;
+    }
+    return -1;
+}
+
 void spremiKomponente()
 {
-	// Otvaranje datoteke za pisanje
-	FILE* file = fopen(FILE_NAME, "w");
+    FILE* file = fopen(FILE_NAME, "w");
+    if (!file) return;
 
-	// Provjera datoteke
-	if (file == NULL)
-	{
-		perror("Greska kod otvaranja datoteke");
-		return;
-	}
+    for (int i = 0; i < brojKomponenti; i++)
+    {
+        fprintf(file, "%s|%s|%s|%.2f|%d|%d|%d.%d.%d\n",
+            komponente[i].id,
+            komponente[i].naziv,
+            komponente[i].proizvodac,
+            komponente[i].cijena,
+            komponente[i].kolicina,
+            komponente[i].tip,
+            komponente[i].datumDolaska.dan,
+            komponente[i].datumDolaska.mjesec,
+            komponente[i].datumDolaska.godina);
+    }
 
-	printf("Spremanje u datoteku...\n");
-
-	// Upis svih komponenti
-	for (int i = 0; i < brojKomponenti; i++)
-	{
-		fprintf(file,
-			"%d|%s|%s|%.2f|%d|%d\n",
-
-			komponente[i].id,
-			komponente[i].naziv,
-			komponente[i].proizvodac,
-			komponente[i].cijena,
-			komponente[i].kolicina,
-			komponente[i].tip
-		);
-	}
-
-	// Zatvaranje datoteke
-	fclose(file);
+    fclose(file);
 }
 
-// Funkcija za učitavanje komponenti
 void ucitajKomponente()
 {
-	// Otvaranje datoteke za čitanje
-	FILE* file = fopen(FILE_NAME, "r");
+    FILE* file = fopen(FILE_NAME, "r");
+    if (!file) return;
 
-	// Ako datoteka ne postoji
-	if (file == NULL)
-	{
-		return;
-	}
+    Komponenta temp;
 
-	// Privremena komponenta
-	Komponenta temp;
+    while (fscanf(file,
+        "%29[^|]|%49[^|]|%49[^|]|%f|%d|%d|%d.%d.%d\n",
+        temp.id,
+        temp.naziv,
+        temp.proizvodac,
+        &temp.cijena,
+        &temp.kolicina,
+        (int*)&temp.tip,
+        &temp.datumDolaska.dan,
+        &temp.datumDolaska.mjesec,
+        &temp.datumDolaska.godina) == 9)
+    {
+        Komponenta* novi = realloc(komponente, (brojKomponenti + 1) * sizeof(Komponenta));
+        if (!novi) return;
 
-	// Čitanje komponenti
-	while (fscanf(file,
-		"%d|%49[^|]|%49[^|]|%f|%d|%d\n",
+        komponente = novi;
+        komponente[brojKomponenti++] = temp;
+    }
 
-		&temp.id,
-		temp.naziv,
-		temp.proizvodac,
-		&temp.cijena,
-		&temp.kolicina,
-		(int*)&temp.tip) == 6)
-	{
-		// Povećavanje memorije
-		Komponenta* novi = realloc(
-			komponente,
-			(brojKomponenti + 1) * sizeof(Komponenta)
-		);
-
-		// Provjera realloc
-		if (novi == NULL)
-		{
-			perror("Greska realloc");
-
-			fclose(file);
-
-			return;
-		}
-
-		// Novi pokazivač
-		komponente = novi;
-
-		// Dodavanje komponente
-		komponente[brojKomponenti] = temp;
-
-		// Povećavanje broja komponenti
-		brojKomponenti++;
-	}
-
-	// Zatvaranje datoteke
-	fclose(file);
+    fclose(file);
 }
 
-// Funkcija za dodavanje komponente
 void dodajKomponentu()
 {
-	// Nova komponenta
-	Komponenta nova;
+    Komponenta nova;
 
-	printf("\n=== Dodavanje komponente ===\n");
+    clearBuffer();
 
-	// Unos ID-a
-	printf("ID: ");
-	scanf("%d", &nova.id);
+    printf("\n=== Dodavanje ===\n");
 
-	// Čišćenje buffera
-	clearBuffer();
+    printf("ID: ");
+    fgets(nova.id, MAX_ID, stdin);
+    nova.id[strcspn(nova.id, "\n")] = 0;
 
-	// Unos naziva
-	printf("Naziv: ");
+    int idx = postojiKomponenta(nova.id);
 
-	fgets(nova.naziv, MAX_NAZIV, stdin);
+    if (idx != -1)
+    {
+        printf("Postoji, dodaj kolicinu: ");
+        int k;
+        scanf("%d", &k);
 
-	// Uklanjanje '\n'
-	nova.naziv[strcspn(nova.naziv, "\n")] = '\0';
+        komponente[idx].kolicina += k;
+        spremiKomponente();
+        return;
+    }
 
-	// Unos proizvođača
-	printf("Proizvodac: ");
+    clearBuffer();
 
-	fgets(nova.proizvodac, MAX_PROIZVODAC, stdin);
+    printf("Naziv: ");
+    fgets(nova.naziv, MAX_NAZIV, stdin);
+    nova.naziv[strcspn(nova.naziv, "\n")] = 0;
 
-	// Uklanjanje '\n'
-	nova.proizvodac[strcspn(nova.proizvodac, "\n")] = '\0';
+    printf("Proizvodac: ");
+    fgets(nova.proizvodac, MAX_PROIZVODAC, stdin);
+    nova.proizvodac[strcspn(nova.proizvodac, "\n")] = 0;
 
-	// Unos cijene
-	printf("Cijena: ");
-	scanf("%f", &nova.cijena);
+    printf("Cijena: ");
+    scanf("%f", &nova.cijena);
 
-	// Unos količine
-	printf("Kolicina: ");
-	scanf("%d", &nova.kolicina);
+    printf("Kolicina: ");
+    scanf("%d", &nova.kolicina);
 
-	// Ispis tipova
-	printf("\nTip komponente:\n");
+    printf("Tip (1-9): ");
+    scanf("%d", (int*)&nova.tip);
 
-	printf("1. CPU\n");
-	printf("2. GPU\n");
-	printf("3. RAM\n");
-	printf("4. MBO\n");
-	printf("5. SSD\n");
-	printf("6. PSU\n");
-	printf("7. VEN\n");
-	printf("8. COL\n");
-	printf("9. KUC\n");
+    Komponenta* tmp = realloc(komponente, (brojKomponenti + 1) * sizeof(Komponenta));
+    if (!tmp) return;
 
-	// Unos tipa
-	printf("Odabir: ");
+    komponente = tmp;
+    komponente[brojKomponenti++] = nova;
 
-	scanf("%d", (int*)&nova.tip);
+    spremiKomponente();
 
-	// Povećavanje memorije
-	Komponenta* temp = realloc(
-		komponente,
-		(brojKomponenti + 1) * sizeof(Komponenta)
-	);
-
-	// Provjera realloc
-	if (temp == NULL)
-	{
-		printf("Greska kod alokacije memorije!\n");
-		return;
-	}
-
-	// Novi pokazivač
-	komponente = temp;
-
-	// Dodavanje komponente
-	komponente[brojKomponenti] = nova;
-
-	// Povećavanje broja komponenti
-	brojKomponenti++;
-
-	// Spremanje u datoteku
-	spremiKomponente();
-
-	printf("\nKomponenta uspjesno dodana!\n");
+    printf("Dodano!\n");
 }
 
-// Funkcija za pretvaranje enum u string
-const char* getTipKomponente(TipKomponente tip)
-{
-	switch (tip)
-	{
-	case CPU:
-		return "CPU";
-
-	case GPU:
-		return "GPU";
-
-	case RAM:
-		return "RAM";
-
-	case MBO:
-		return "MBO";
-
-	case SSD:
-		return "SSD";
-
-	case PSU:
-		return "PSU";
-
-	case VEN:
-		return "VENTILATOR";
-
-	case COL:
-		return "COOLER";
-
-	case KUC:
-		return "KUCISTE";
-
-	default:
-		return "NEPOZNATO";
-	}
-}
-
-// Funkcija za prikaz komponenti
 void prikaziKomponente()
 {
-	// Provjera postoji li komponenti
-	if (brojKomponenti == 0)
-	{
-		printf("\nNema komponenti!\n");
-		return;
-	}
+    if (brojKomponenti == 0)
+    {
+        printf("Nema!\n");
+        return;
+    }
 
-	printf("\n=== Popis komponenti ===\n");
+    char buffer[10];
+    int sort = 0;
 
-	// Prolazak kroz sve komponente
-	for (int i = 0; i < brojKomponenti; i++)
-	{
-		printf("\nKomponenta #%d\n", i + 1);
+    printf("\nSortiraj po cijeni? (1=da, 0=ne): ");
+    fgets(buffer, sizeof(buffer), stdin);
+    sort = atoi(buffer);
 
-		printf("ID: %d\n", komponente[i].id);
+    Komponenta* kopija = malloc(brojKomponenti * sizeof(Komponenta));
+    if (!kopija)
+    {
+        printf("Greska u memoriji!\n");
+        return;
+    }
 
-		printf("Naziv: %s\n", komponente[i].naziv);
+    for (int i = 0; i < brojKomponenti; i++)
+        kopija[i] = komponente[i];
 
-		printf("Proizvodac: %s\n",
-			komponente[i].proizvodac);
+    if (sort == 1)
+    {
+        for (int i = 0; i < brojKomponenti - 1; i++)
+        {
+            for (int j = 0; j < brojKomponenti - i - 1; j++)
+            {
+                if (kopija[j].cijena > kopija[j + 1].cijena)
+                {
+                    Komponenta t = kopija[j];
+                    kopija[j] = kopija[j + 1];
+                    kopija[j + 1] = t;
+                }
+            }
+        }
+    }
 
-		printf("Cijena: %.2f EUR\n",
-			komponente[i].cijena);
+    printf("\n=== POPIS KOMPONENTI ===\n");
 
-		printf("Kolicina: %d\n",
-			komponente[i].kolicina);
+    for (int i = 0; i < brojKomponenti; i++)
+    {
+        printf("%s | %.2f EUR | %d kom\n",
+            kopija[i].id,
+            kopija[i].cijena,
+            kopija[i].kolicina);
+    }
 
-		printf("Tip: %s\n",
-			getTipKomponente(komponente[i].tip));
-	}
+    free(kopija);
+}
+
+void prikaziKomponenteFiltrirano()
+{
+    int t;
+    printf("Tip (0 sve): ");
+    scanf("%d", &t);
+
+    for (int i = 0; i < brojKomponenti; i++)
+    {
+        if (t == 0 || komponente[i].tip == t)
+        {
+            printf("%s | %.2f\n",
+                komponente[i].id,
+                komponente[i].cijena);
+        }
+    }
+}
+
+void azurirajKomponentu()
+{
+    char id[MAX_ID];
+    clearBuffer();
+
+    printf("ID: ");
+    fgets(id, MAX_ID, stdin);
+    id[strcspn(id, "\n")] = 0;
+
+    for (int i = 0; i < brojKomponenti; i++)
+    {
+        if (strcmp(komponente[i].id, id) == 0)
+        {
+            printf("Nova cijena: ");
+            scanf("%f", &komponente[i].cijena);
+
+            printf("Nova kolicina: ");
+            scanf("%d", &komponente[i].kolicina);
+
+            spremiKomponente();
+            return;
+        }
+    }
+
+    printf("Nije nadeno!\n");
+}
+
+void obrisiKomponentu()
+{
+    char id[MAX_ID];
+    clearBuffer();
+
+    printf("ID za brisanje: ");
+    fgets(id, MAX_ID, stdin);
+    id[strcspn(id, "\n")] = 0;
+
+    for (int i = 0; i < brojKomponenti; i++)
+    {
+        if (strcmp(komponente[i].id, id) == 0)
+        {
+            for (int j = i; j < brojKomponenti - 1; j++)
+                komponente[j] = komponente[j + 1];
+
+            brojKomponenti--;
+            spremiKomponente();
+
+            printf("Obrisano!\n");
+            return;
+        }
+    }
+
+    printf("Nije nadeno!\n");
+}
+
+const char* getTipKomponente(TipKomponente tip)
+{
+    switch (tip)
+    {
+    case CPU: return "CPU";
+    case GPU: return "GPU";
+    case RAM: return "RAM";
+    case MBO: return "MBO";
+    case SSD: return "SSD";
+    case PSU: return "PSU";
+    case VEN: return "VEN";
+    case COL: return "COL";
+    case KUC: return "KUC";
+    default: return "??";
+    }
 }

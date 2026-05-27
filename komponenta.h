@@ -1,59 +1,58 @@
 ﻿#ifndef KOMPONENTA_H
 #define KOMPONENTA_H
 
-// Maksimalna duljina stringova
+#include <stdio.h>
+
+#define MAX_ID 30
 #define MAX_NAZIV 50
 #define MAX_PROIZVODAC 50
-
-// Naziv tekstualne datoteke
 #define FILE_NAME "komponente.txt"
 
-// Enum tipova komponenti
-typedef enum {
+typedef struct
+{
+    int dan;
+    int mjesec;
+    int godina;
+} Datum;
 
-	CPU = 1,
-	GPU,
-	RAM,
-	MBO,
-	SSD,
-	PSU,
-	VEN,
-	COL,
-	KUC
-
+typedef enum
+{
+    CPU = 1,
+    GPU,
+    RAM,
+    MBO,
+    SSD,
+    PSU,
+    VEN,
+    COL,
+    KUC
 } TipKomponente;
 
-// Struktura komponente
-typedef struct {
-
-	int id;
-
-	char naziv[MAX_NAZIV];
-
-	char proizvodac[MAX_PROIZVODAC];
-
-	float cijena;
-
-	int kolicina;
-
-	TipKomponente tip;
-
+typedef struct
+{
+    char id[MAX_ID];
+    char naziv[MAX_NAZIV];
+    char proizvodac[MAX_PROIZVODAC];
+    float cijena;
+    int kolicina;
+    TipKomponente tip;
+    Datum datumDolaska;
 } Komponenta;
 
-// Globalni pokazivač
 extern Komponenta* komponente;
-
-// Broj komponenti
 extern int brojKomponenti;
 
-// Funkcije
-void dodajKomponentu();
-
-void prikaziKomponente();
-
+void ucitajKomponente();
 void spremiKomponente();
 
-void ucitajKomponente();
+void dodajKomponentu();
+void prikaziKomponente();
+void prikaziKomponenteFiltrirano();
+
+void azurirajKomponentu();
+void obrisiKomponentu();
+
+void sortirajPoCijeni();
 
 const char* getTipKomponente(TipKomponente tip);
 
